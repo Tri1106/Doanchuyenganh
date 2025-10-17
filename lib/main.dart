@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,11 +10,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🧑‍💻 Tạo user giả để test HomeScreen
+    final mockUser = {
+      'fullname': 'Người dùng thử',
+      'username': 'demo_user',
+      'role': 'customer',
+    };
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Tour Booking App',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const LoginScreen(),
+      title: 'Tour App',
+      theme: ThemeData(primarySwatch: Colors.teal),
+      home: HomeScreen(user: mockUser), // ✅ Truyền user giả
     );
   }
 }
