@@ -15,60 +15,149 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   bool _isLoading = false;
-  String _message = '';
 
   Future<void> _register() async {
-    setState(() {
-      _isLoading = true;
-      _message = '';
-    });
+    if (fullnameController.text.isEmpty ||
+        emailController.text.isEmpty ||
+        phoneController.text.isEmpty ||
+        passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin.')),
+      );
+      return;
+    }
 
-    bool success = await ApiService.register(
-      fullnameController.text,
-      emailController.text,
-      phoneController.text,
-      passwordController.text,
+    setState(() => _isLoading = true);
+
+    final result = await ApiService.register(
+      fullnameController.text.trim(),
+      emailController.text.trim(),
+      phoneController.text.trim(),
+      passwordController.text.trim(),
     );
 
-    setState(() {
-      _isLoading = false;
-      _message = success
-          ? 'Đăng ký thành công! Vui lòng đăng nhập.'
-          : 'Đăng ký thất bại.';
-    });
+    setState(() => _isLoading = false);
+
+    final message = result['message'] ?? '';
+    final success = result['success'] ?? false;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
 
     if (success) {
-      Future.delayed(const Duration(seconds: 1), () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      });
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Đăng ký")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(controller: fullnameController, decoration: const InputDecoration(labelText: "Họ và tên")),
-            TextField(controller: emailController, decoration: const InputDecoration(labelText: "Email")),
-            TextField(controller: phoneController, decoration: const InputDecoration(labelText: "Số điện thoại")),
-            TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: "Mật khẩu")),
-            const SizedBox(height: 20),
-            if (_message.isNotEmpty)
-              Text(_message, style: TextStyle(color: _message.contains('thành công') ? Colors.green : Colors.red)),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _register,
-              child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("Đăng ký"),
-            ),
-          ],
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.person_add_alt_1, size: 80, color: Colors.teal),
+              const SizedBox(height: 16),
+              const Text(
+                "Đăng ký tài khoản",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Name
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.person_outline),
+                  labelText: "Họ và tên",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Email
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  labelText: "Email",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Password
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  labelText: "Mật khẩu",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {},
+                  child: const Text(
+                    "Đăng ký",
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
+                child: const Text(
+                  "Đã có tài khoản? Đăng nhập ngay",
+                  style: TextStyle(color: Colors.teal),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

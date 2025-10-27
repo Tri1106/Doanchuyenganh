@@ -13,8 +13,20 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username, 'password': password}),
       );
+
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final Map<String, dynamic> data = jsonDecode(response.body);
+
+        // ✅ Nếu backend trả {"user": {...}} thì giữ nguyên
+        if (data.containsKey('user')) {
+          return data;
+        }
+
+        // ✅ Nếu backend trả object user trực tiếp thì gói lại để Flutter hiểu
+        return {
+          'message': data['message'] ?? 'Đăng nhập thành công!',
+          'user': data,
+        };
       } else {
         print('❌ Login failed: ${response.body}');
         return null;
@@ -26,7 +38,8 @@ class ApiService {
   }
 
   // 🟩 Đăng ký
-  static Future<bool> register(String fullname, String email, String phone, String password) async {
+  static Future<Map<String, dynamic>> register(
+      String fullname, String email, String phone, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/account/register'),
@@ -39,10 +52,25 @@ class ApiService {
         }),
       );
 
-      return response.statusCode == 200 || response.statusCode == 201;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Đăng ký thành công!',
+        };
+      } else {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Đăng ký thất bại.',
+        };
+      }
     } catch (e) {
       print('⚠️ Lỗi khi gọi API register: $e');
-      return false;
+      return {
+        'success': false,
+        'message': 'Lỗi kết nối máy chủ.',
+      };
     }
   }
 
