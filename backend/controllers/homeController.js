@@ -15,22 +15,11 @@ function checkCustomerLogin(req, res, next) {
 // Route cho trang chủ
 router.get("/", async (req, res) => {
   try {
-    const isLoggedIn = req.session.user ? true : false; // Kiểm tra xem người dùng đã đăng nhập chưa
-
-    // Đảm bảo đường dẫn đúng đến file home.html trong app/views/home
-    res.json({ message: "✅ API /home hoạt động bình thường!" }
-    );
-
-    // Gửi file HTML
-    res.sendFile(filePath, (err) => {
-      if (err) {
-        console.error("Lỗi khi gửi file HTML:", err);
-        res.status(500).send("Lỗi khi gửi file HTML");
-      }
-    });
+    const isLoggedIn = !!req.session.user;
+    res.json({ message: "✅ API /home hoạt động bình thường!", isLoggedIn });
   } catch (err) {
     console.error(err);
-    res.status(500).send("Lỗi khi lấy dữ liệu");
+    res.status(500).json({ error: "Lỗi khi lấy dữ liệu" });
   }
 });
 
@@ -516,10 +505,17 @@ router.get("/api/popular-tours", async (req, res) => {
     const pool = await connect();
     const result = await pool
       .request()
-      .query(
-        "SELECT TourID, TourName, Destination, Price, ImageURL FROM Tours WHERE IsFeatured = 1"
-      );
-    res.json(result.recordset);
+      .query("SELECT TourID, TourName, Destination, Price, ImageURL FROM Tours WHERE IsFeatured = 1");
+
+    // ✅ Tạo URL ảnh đầy đủ
+    const tours = result.recordset.map(t => ({
+      ...t,
+      ImageURL: t.ImageURL
+        ? `${req.protocol}://${req.get("host")}/${t.ImageURL.replace(/\\/g, "/")}`
+        : null,
+    }));
+
+    res.json(tours);
   } catch (err) {
     console.error("Lỗi khi lấy dữ liệu điểm đến phổ biến:", err);
     res.status(500).json({ error: "Lỗi server" });

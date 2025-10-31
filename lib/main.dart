@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,8 +15,19 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Tour App',
-      theme: ThemeData(primarySwatch: Colors.teal),
-      home: const LoginScreen(), // ✅ Bắt đầu từ màn hình đăng nhập thật
+      theme: ThemeData(
+        primarySwatch: Colors.teal,
+      ),
+
+      // 🔹 Đặt route khởi đầu
+      initialRoute: '/login',
+
+      // 🔹 Khai báo toàn bộ routes
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) =>  HomeScreen(user: {},),
+      },
     );
   }
 }

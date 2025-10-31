@@ -33,7 +33,6 @@ class Tour {
     required this.isFeatured,
   });
 
-  // Hàm tạo từ JSON
   factory Tour.fromJson(Map<String, dynamic> json) {
     double _toDouble(dynamic v) {
       if (v == null) return 0.0;
@@ -65,7 +64,7 @@ class Tour {
       destination: json['Destination'],
       price: _toDouble(json['Price']),
       status: _toBool(json['Status']),
-      imageURL: json['ImageURL'],
+      imageURL: json['ImageURL'] ?? json['imageURL'] ?? json['image'],
       soCho: _toInt(json['SoCho']),
       diemThamQuan: json['DiemThamQuan'],
       amThuc: json['AmThuc'],
@@ -77,7 +76,6 @@ class Tour {
     );
   }
 
-  // Chuyển ngược lại sang JSON (nếu cần gửi về server)
   Map<String, dynamic> toJson() {
     return {
       'TourID': tourID,

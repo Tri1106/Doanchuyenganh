@@ -14,25 +14,25 @@ class ApiService {
         body: jsonEncode({'username': username, 'password': password}),
       );
 
+      print('📡 [LOGIN] URL: $baseUrl/account/login');
+      print('📦 [LOGIN] Status Code: ${response.statusCode}');
+      print('📨 [LOGIN] Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-
-        // ✅ Nếu backend trả {"user": {...}} thì giữ nguyên
         if (data.containsKey('user')) {
           return data;
         }
-
-        // ✅ Nếu backend trả object user trực tiếp thì gói lại để Flutter hiểu
         return {
           'message': data['message'] ?? 'Đăng nhập thành công!',
           'user': data,
         };
       } else {
-        print('❌ Login failed: ${response.body}');
+        print('❌ [LOGIN] Thất bại: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('⚠️ Lỗi khi gọi API login: $e');
+      print('⚠️ [LOGIN] Lỗi khi gọi API: $e');
       return null;
     }
   }
@@ -52,6 +52,10 @@ class ApiService {
         }),
       );
 
+      print('📡 [REGISTER] URL: $baseUrl/account/register');
+      print('📦 [REGISTER] Status Code: ${response.statusCode}');
+      print('📨 [REGISTER] Body: ${response.body}');
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         return {
@@ -66,7 +70,7 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('⚠️ Lỗi khi gọi API register: $e');
+      print('⚠️ [REGISTER] Lỗi khi gọi API: $e');
       return {
         'success': false,
         'message': 'Lỗi kết nối máy chủ.',
@@ -77,28 +81,41 @@ class ApiService {
   // 🟩 Lấy tour nổi bật
   static Future<List<Tour>> getPopularTours() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/popular-tours'));
+      final url = Uri.parse('$baseUrl/api/popular-tours');
+      final response = await http.get(url);
+
+      print('📡 [POPULAR TOURS] Gọi tới: $url');
+      print('📦 [POPULAR TOURS] Status Code: ${response.statusCode}');
+      print('📨 [POPULAR TOURS] Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((e) => Tour.fromJson(e as Map<String, dynamic>)).toList();
       }
       return [];
     } catch (e) {
-      print('getPopularTours error: $e');
+      print('⚠️ [POPULAR TOURS] Lỗi: $e');
       return [];
     }
   }
 
+  // 🟩 Lấy tất cả tour
   static Future<List<Tour>> getAllTours() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/tours'));
+      final url = Uri.parse('$baseUrl/api/tours');
+      final response = await http.get(url);
+
+      print('📡 [ALL TOURS] Gọi tới: $url');
+      print('📦 [ALL TOURS] Status Code: ${response.statusCode}');
+      print('📨 [ALL TOURS] Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((e) => Tour.fromJson(e as Map<String, dynamic>)).toList();
       }
       return [];
     } catch (e) {
-      print('getAllTours error: $e');
+      print('⚠️ [ALL TOURS] Lỗi: $e');
       return [];
     }
   }

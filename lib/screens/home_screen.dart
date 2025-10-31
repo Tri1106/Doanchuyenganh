@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/tour_model.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
-  final Map<String, dynamic> user; // ✅ Nhận thông tin người dùng từ màn đăng nhập
+  final Map<String, dynamic> user;
 
   const HomeScreen({required this.user, Key? key}) : super(key: key);
 
@@ -22,9 +23,23 @@ class _HomeScreenState extends State<HomeScreen> {
     _allTours = ApiService.getAllTours();
   }
 
+  String formatPrice(double? price) {
+    if (price == null || price <= 0) return "Liên hệ";
+    final formatter = NumberFormat('#,###', 'vi_VN');
+    return "${formatter.format(price)} đ";
+  }
+
+  String getFullImageUrl(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return 'https://via.placeholder.com/150';
+    }
+    if (imageUrl.startsWith('http')) return imageUrl;
+    return '${ApiService.baseUrl}/${imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = widget.user; // ✅ Dễ gọi trong UI
+    final user = widget.user;
 
     return Scaffold(
       appBar: AppBar(
@@ -40,8 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-
-      // 🔹 Thân trang
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       scrollDirection: Axis.horizontal,
                       itemCount: tours.length,
                       itemBuilder: (context, index) {
-                        final Tour tour = tours[index];
+                        final tour = tours[index];
                         return Container(
                           width: 180,
                           margin: const EdgeInsets.all(8),
@@ -104,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: InkWell(
                               onTap: () {
-                                // TODO: Chuyển đến trang chi tiết tour
+                                // TODO: Chuyển đến chi tiết tour
                               },
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,12 +125,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ClipRRect(
                                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                                     child: Image.network(
-                                      tour.imageURL ?? '', // ✅ tránh null
+                                      getFullImageUrl(tour.imageURL),
                                       height: 120,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stack) =>
-                                      const Icon(Icons.image_not_supported),
+                                      const Icon(Icons.image_not_supported, size: 50),
                                     ),
                                   ),
                                   Padding(
@@ -132,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 8),
                                     child: Text(
-                                      "${tour.price.toStringAsFixed(0)} VND",
+                                      formatPrice(tour.price),
                                       style: const TextStyle(color: Colors.teal),
                                     ),
                                   ),
@@ -172,7 +185,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: tours.length,
                     itemBuilder: (context, index) {
-                      final Tour tour = tours[index];
+                      final tour = tours[index];
+                      final destination = (tour.destination?.isNotEmpty ?? false)
+                          ? tour.destination!
+                          : 'Chưa có địa điểm';
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                         shape: RoundedRectangleBorder(
@@ -182,12 +198,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           leading: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
-                              tour.imageURL ?? '', // ✅ fix null
+                              getFullImageUrl(tour.imageURL),
                               width: 70,
                               height: 70,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stack) =>
-                              const Icon(Icons.image),
+                              const Icon(Icons.image, size: 40),
                             ),
                           ),
                           title: Text(
@@ -195,9 +211,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          subtitle: Text(tour.destination ?? ''), // ✅ fix null
+                          subtitle: Text(destination),
                           trailing: Text(
-                            "${tour.price.toStringAsFixed(0)}đ",
+                            formatPrice(tour.price),
                             style: const TextStyle(color: Colors.teal),
                           ),
                           onTap: () {
