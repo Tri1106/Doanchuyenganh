@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/api_service.dart';
+import 'booking_detail_screen.dart';
+
 
 class TourDetailScreen extends StatefulWidget {
   final String tourId;
@@ -80,8 +82,16 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // TODO: xử lý đặt tour
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingDetailScreen(
+                bookingId: 'B001', // TODO: truyền ID thật khi có
+              ),
+            ),
+          );
         },
+
         label: const Text("Đặt tour ngay"),
         icon: const Icon(Icons.shopping_cart),
         backgroundColor: Colors.teal,
