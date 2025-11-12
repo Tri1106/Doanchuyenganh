@@ -30,37 +30,50 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = '';
     });
 
-    final response = await ApiService.login(username, password);
+    try {
+      final response = await ApiService.login(username, password);
+      setState(() => _isLoading = false);
 
-    setState(() => _isLoading = false);
+      // Log ra console để debug nếu cần
+      debugPrint("📩 Response từ API: $response");
 
-    if (response != null && response['user'] != null) {
-      // ✅ Đăng nhập thành công
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response['message'] ?? 'Đăng nhập thành công!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // ✅ Kiểm tra đúng key trả về từ backend
+      if (response != null && response['id'] != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Đăng nhập thành công!"),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-      await Future.delayed(const Duration(seconds: 1));
+        // Đợi 1 tí cho đẹp
+        await Future.delayed(const Duration(milliseconds: 500));
 
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen(user: {},)),
-      );
-    } else {
-      // ❌ Đăng nhập thất bại
-      final msg = response?['message'] ?? 'Sai tài khoản hoặc mật khẩu';
-      setState(() => _errorMessage = msg);
+        if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(msg),
-          backgroundColor: Colors.red,
-        ),
-      );
+        // ✅ Chuyển sang màn hình Home, truyền user
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(user: response),
+          ),
+        );
+      } else {
+        final msg = response?['message'] ?? 'Sai tài khoản hoặc mật khẩu';
+        setState(() => _errorMessage = msg);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Lỗi kết nối đến máy chủ: $e';
+      });
     }
   }
 
@@ -74,7 +87,6 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo / Icon
               const Icon(Icons.lock_outline, size: 90, color: Colors.teal),
               const SizedBox(height: 16),
               const Text(
@@ -87,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Email / Phone
               TextField(
                 controller: _usernameController,
                 decoration: InputDecoration(
@@ -103,7 +114,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Password
               TextField(
                 controller: _passwordController,
                 obscureText: true,
@@ -120,7 +130,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Hiển thị lỗi nếu có
               if (_errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -131,7 +140,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-              // Nút đăng nhập
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -151,10 +159,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
 
-              // Nút chuyển sang đăng ký
               TextButton(
                 onPressed: () {
                   Navigator.push(

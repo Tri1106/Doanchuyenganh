@@ -7,33 +7,34 @@ class ApiService {
 
   // 🟩 Đăng nhập
   static Future<Map<String, dynamic>?> login(String username, String password) async {
+    final url = Uri.parse('$baseUrl/account/login');
+
     try {
+      print('📡 Gửi request tới: $url');
+      print('📦 Body: ${jsonEncode({'username': username, 'password': password})}');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/account/login'),
-        headers: {'Content-Type': 'application/json'},
+        url,
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
         body: jsonEncode({'username': username, 'password': password}),
       );
 
-      print('📡 [LOGIN] URL: $baseUrl/account/login');
-      print('📦 [LOGIN] Status Code: ${response.statusCode}');
-      print('📨 [LOGIN] Body: ${response.body}');
+      print('📨 Status code: ${response.statusCode}');
+      print('📨 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        if (data.containsKey('user')) {
-          return data;
-        }
-        return {
-          'message': data['message'] ?? 'Đăng nhập thành công!',
-          'user': data,
-        };
+        return jsonDecode(response.body);
       } else {
-        print('❌ [LOGIN] Thất bại: ${response.body}');
-        return null;
+        return {
+          'message': 'Lỗi ${response.statusCode}: ${response.reasonPhrase}',
+        };
       }
     } catch (e) {
-      print('⚠️ [LOGIN] Lỗi khi gọi API: $e');
-      return null;
+      print('❌ Lỗi khi gọi API: $e');
+      return {'message': 'Không thể kết nối server: $e'};
     }
   }
 

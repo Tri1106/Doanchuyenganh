@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/api_service.dart';
 import 'booking_detail_screen.dart';
+import 'booking_screen.dart';
 
 
 class TourDetailScreen extends StatefulWidget {
@@ -85,8 +86,11 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => BookingDetailScreen(
-                bookingId: 'B001', // TODO: truyền ID thật khi có
+              builder: (context) => BookingScreen(
+                tourID: tour['TourID'].toString(),
+                tourName: tour['TenTour'] ?? 'Không có tên',
+                tourPrice: double.tryParse(tour['Gia'].toString()) ?? 0.0,
+                tourImage: imageUrl,
               ),
             ),
           );

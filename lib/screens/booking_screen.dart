@@ -1,161 +1,319 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'booking_detail_screen.dart';
 
 class BookingScreen extends StatefulWidget {
-  const BookingScreen({super.key});
+  final String tourID;
+  final String tourName;
+  final double tourPrice;
+  final String tourImage;
+
+  const BookingScreen({
+    Key? key,
+    required this.tourID,
+    required this.tourName,
+    required this.tourPrice,
+    required this.tourImage,
+  }) : super(key: key);
 
   @override
   State<BookingScreen> createState() => _BookingScreenState();
 }
 
 class _BookingScreenState extends State<BookingScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
 
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController addressController = TextEditingController();
-  final TextEditingController tourIDController = TextEditingController();
-  final TextEditingController adultsController = TextEditingController(text: '1');
-  final TextEditingController childrenController = TextEditingController(text: '0');
+  int _adults = 1;
+  int _children = 0;
 
-  bool isLoading = false;
-  String? message;
+  double get totalAmount =>
+      (_adults * widget.tourPrice) + (_children * widget.tourPrice * 0.7);
 
-  Future<void> _submitBooking() async {
-    if (!_formKey.currentState!.validate()) return;
+  String formatCurrency(double amount) {
+    final formatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+    return formatter.format(amount);
+  }
 
-    setState(() {
-      isLoading = true;
-      message = null;
-    });
+  // 🧾 Gửi request đặt tour
+  Future<void> _bookTour() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final address = _addressController.text.trim();
 
-    const String apiUrl = "http://<YOUR_BACKEND_IP>:<PORT>/thanh-toan"; // 🔥 Thay IP + port backend
-
-    final Map<String, dynamic> requestData = {
-      "name": nameController.text.trim(),
-      "email": emailController.text.trim(),
-      "phone": phoneController.text.trim(),
-      "address": addressController.text.trim(),
-      "tourID": tourIDController.text.trim(),
-      "adults": adultsController.text.trim(),
-      "children": childrenController.text.trim(),
-    };
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Vui lòng điền đầy đủ thông tin!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     try {
+      // Lấy userID từ SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final userID = prefs.getString('userID');
+
+      if (userID == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Bạn chưa đăng nhập!"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final url = Uri.parse('http://10.0.2.2:3000/mobile/bookings');
+
       final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(requestData),
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "userID": userID,
+          "name": name,
+          "email": email,
+          "phone": phone,
+          "address": address,
+          "tourID": widget.tourID,
+          "adults": _adults,
+          "children": _children,
+        }),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          message = data["message"];
-        });
+        final data = json.decode(response.body);
 
-        // Nếu backend trả redirectUrl, có thể chuyển hướng
-        if (data["redirectUrl"] != null) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Đi đến trang thanh toán...'),
-          ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("🎉 Đặt tour thành công!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        final bookingID = data['booking']?['bookingID'];
+
+        if (bookingID != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingDetailScreen(bookingID: bookingID),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Không tìm thấy mã đặt tour!"),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
       } else {
-        setState(() {
-          message = "Lỗi: ${response.body}";
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+            Text("Lỗi server (${response.statusCode}): ${response.body}"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    } catch (err) {
-      setState(() {
-        message = "Không thể kết nối server: $err";
-      });
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Lỗi kết nối: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Đặt tour du lịch")),
+      appBar: AppBar(
+        title: const Text("Đặt Tour"),
+        backgroundColor: Colors.teal,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: "Họ và tên"),
-                validator: (v) => v!.isEmpty ? "Nhập họ tên" : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
               ),
-              TextFormField(
-                controller: emailController,
-                decoration: const InputDecoration(labelText: "Email"),
-                validator: (v) => v!.isEmpty ? "Nhập email" : null,
+              child: Image.network(
+                widget.tourImage,
+                width: double.infinity,
+                height: 240,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 240,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image_not_supported, size: 80),
+                ),
               ),
-              TextFormField(
-                controller: phoneController,
-                decoration: const InputDecoration(labelText: "Số điện thoại"),
-                validator: (v) => v!.isEmpty ? "Nhập số điện thoại" : null,
-              ),
-              TextFormField(
-                controller: addressController,
-                decoration: const InputDecoration(labelText: "Địa chỉ"),
-              ),
-              TextFormField(
-                controller: tourIDController,
-                decoration: const InputDecoration(labelText: "Mã TourID"),
-                validator: (v) => v!.isEmpty ? "Nhập TourID" : null,
-              ),
-              const SizedBox(height: 10),
-              Row(
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: adultsController,
-                      decoration: const InputDecoration(labelText: "Người lớn"),
-                      keyboardType: TextInputType.number,
+                  Text(
+                    widget.tourName,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: childrenController,
-                      decoration: const InputDecoration(labelText: "Trẻ em"),
-                      keyboardType: TextInputType.number,
+                  const SizedBox(height: 4),
+                  Text(
+                    "Giá người lớn: ${formatCurrency(widget.tourPrice)}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const Divider(height: 32),
+                  const Text(
+                    "Thông tin khách hàng",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTextField("Họ và tên", _nameController, Icons.person),
+                  _buildTextField("Email", _emailController, Icons.email),
+                  _buildTextField("Số điện thoại", _phoneController, Icons.phone),
+                  _buildTextField("Địa chỉ", _addressController, Icons.home),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Số lượng hành khách",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildCounterRow("Người lớn", _adults, onIncrease: () {
+                    setState(() => _adults++);
+                  }, onDecrease: () {
+                    if (_adults > 1) setState(() => _adults--);
+                  }),
+                  _buildCounterRow("Trẻ em", _children, onIncrease: () {
+                    setState(() => _children++);
+                  }, onDecrease: () {
+                    if (_children > 0) setState(() => _children--);
+                  }),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Tạm tính:",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          formatCurrency(totalAmount),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.shopping_cart_checkout),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      label: const Text(
+                        "Đặt tour ngay",
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                      onPressed: _bookTour,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: isLoading ? null : _submitBooking,
-                icon: const Icon(Icons.check_circle_outline),
-                label: isLoading
-                    ? const SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-                    : const Text("Đặt tour ngay"),
-              ),
-              const SizedBox(height: 20),
-              if (message != null)
-                Text(
-                  message!,
-                  style: TextStyle(
-                    color: message!.contains("thành công") ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+      String label, TextEditingController controller, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.teal),
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.teal, width: 1.5),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCounterRow(String title, int value,
+      {required VoidCallback onIncrease, required VoidCallback onDecrease}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 16)),
+          Row(
+            children: [
+              IconButton(
+                onPressed: onDecrease,
+                icon: const Icon(Icons.remove_circle_outline, color: Colors.teal),
+              ),
+              Text(value.toString(), style: const TextStyle(fontSize: 16)),
+              IconButton(
+                onPressed: onIncrease,
+                icon: const Icon(Icons.add_circle_outline, color: Colors.teal),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
