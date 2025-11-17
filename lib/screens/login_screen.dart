@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
+import 'admin/admin_home_screen.dart';
+import 'provider/provider_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,10 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final response = await ApiService.login(username, password);
       setState(() => _isLoading = false);
 
-      // Log ra console để debug nếu cần
-      debugPrint("📩 Response từ API: $response");
+      debugPrint("📩 Response API: $response");
 
-      // ✅ Kiểm tra đúng key trả về từ backend
       if (response != null && response['id'] != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -46,18 +46,35 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        // Đợi 1 tí cho đẹp
         await Future.delayed(const Duration(milliseconds: 500));
-
         if (!mounted) return;
 
-        // ✅ Chuyển sang màn hình Home, truyền user
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomeScreen(user: response),
-          ),
-        );
+        final role = response['role'];
+
+        // 🔥 PHÂN QUYỀN 3 LOẠI: ADMIN / PROVIDER / USER
+        if (role == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AdminHomeScreen(user: response),
+            ),
+          );
+        } else if (role == 'provider') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProviderDashboardScreen(user: response),
+            ),
+          );
+        } else {
+          // MẶC ĐỊNH LÀ USER
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomeScreen(user: response),
+            ),
+          );
+        }
       } else {
         final msg = response?['message'] ?? 'Sai tài khoản hoặc mật khẩu';
         setState(() => _errorMessage = msg);
@@ -99,6 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
+              // Username Input
               TextField(
                 controller: _usernameController,
                 decoration: InputDecoration(
@@ -114,6 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
+              // Password Input
               TextField(
                 controller: _passwordController,
                 obscureText: true,
