@@ -1,48 +1,38 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/tour_model.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.0.2.2:3000";
 
-  // 🟩 Đăng nhập
+  // ============================
+  // 🔰 AUTH
+  // ============================
+
   static Future<Map<String, dynamic>?> login(String username, String password) async {
     final url = Uri.parse('$baseUrl/account/login');
 
     try {
-      print('📡 Gửi request tới: $url');
-      print('📦 Body: ${jsonEncode({'username': username, 'password': password})}');
-
       final response = await http.post(
         url,
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Accept': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username, 'password': password}),
       );
 
-      print('📨 Status code: ${response.statusCode}');
-      print('📨 Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
-      } else {
-        return {
-          'message': 'Lỗi ${response.statusCode}: ${response.reasonPhrase}',
-        };
       }
+      return {'message': 'Sai tài khoản hoặc mật khẩu'};
     } catch (e) {
-      print('❌ Lỗi khi gọi API: $e');
       return {'message': 'Không thể kết nối server: $e'};
     }
   }
 
-  // 🟩 Đăng ký
   static Future<Map<String, dynamic>> register(
       String fullname, String email, String phone, String password) async {
     try {
-      final response = await http.post(
+      final res = await http.post(
         Uri.parse('$baseUrl/account/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -53,71 +43,224 @@ class ApiService {
         }),
       );
 
-      print('📡 [REGISTER] URL: $baseUrl/account/register');
-      print('📦 [REGISTER] Status Code: ${response.statusCode}');
-      print('📨 [REGISTER] Body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return {
-          'success': true,
-          'message': data['message'] ?? 'Đăng ký thành công!',
-        };
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return {'success': true, 'message': "Đăng ký thành công!"};
       } else {
-        final Map<String, dynamic> data = jsonDecode(response.body);
         return {
           'success': false,
-          'message': data['message'] ?? 'Đăng ký thất bại.',
+          'message': jsonDecode(res.body)['message'] ?? "Lỗi không xác định"
         };
       }
     } catch (e) {
-      print('⚠️ [REGISTER] Lỗi khi gọi API: $e');
-      return {
-        'success': false,
-        'message': 'Lỗi kết nối máy chủ.',
-      };
+      return {'success': false, 'message': "Không thể kết nối server"};
     }
   }
 
-  // 🟩 Lấy tour nổi bật
+  // ============================
+  // 🔰 TOUR PUBLIC
+  // ============================
+
   static Future<List<Tour>> getPopularTours() async {
     try {
-      final url = Uri.parse('$baseUrl/api/popular-tours');
-      final response = await http.get(url);
-
-      print('📡 [POPULAR TOURS] Gọi tới: $url');
-      print('📦 [POPULAR TOURS] Status Code: ${response.statusCode}');
-      print('📨 [POPULAR TOURS] Body: ${response.body}');
+      final response = await http.get(Uri.parse('$baseUrl/api/popular-tours'));
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((e) => Tour.fromJson(e as Map<String, dynamic>)).toList();
+        return (jsonDecode(response.body) as List)
+            .map((e) => Tour.fromJson(e))
+            .toList();
       }
       return [];
     } catch (e) {
-      print('⚠️ [POPULAR TOURS] Lỗi: $e');
       return [];
     }
   }
 
-  // 🟩 Lấy tất cả tour
   static Future<List<Tour>> getAllTours() async {
     try {
-      final url = Uri.parse('$baseUrl/api/tours');
-      final response = await http.get(url);
-
-      print('📡 [ALL TOURS] Gọi tới: $url');
-      print('📦 [ALL TOURS] Status Code: ${response.statusCode}');
-      print('📨 [ALL TOURS] Body: ${response.body}');
+      final response = await http.get(Uri.parse('$baseUrl/api/tours'));
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((e) => Tour.fromJson(e as Map<String, dynamic>)).toList();
+        return (jsonDecode(response.body) as List)
+            .map((e) => Tour.fromJson(e))
+            .toList();
       }
       return [];
     } catch (e) {
-      print('⚠️ [ALL TOURS] Lỗi: $e');
       return [];
+    }
+  }
+
+  // ============================
+  // 🔰 TOUR CRUD - PROVIDER
+  // ============================
+
+  static Future<List<dynamic>> getMyTours() async {
+    final url = Uri.parse('$baseUrl/tours');
+    try {
+      final res = await http.get(url);
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<bool> addTour(Map<String, dynamic> data, File? imageFile) async {
+    final url = Uri.parse('$baseUrl/add-tour');
+
+    var req = http.MultipartRequest("POST", url);
+
+    data.forEach((k, v) => req.fields[k] = v.toString());
+
+    if (imageFile != null) {
+      req.files.add(await http.MultipartFile.fromPath("tourImage", imageFile.path));
+    }
+
+    try {
+      final res = await req.send();
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> updateTour(String tourID, Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl/edit-tour/$tourID');
+
+    try {
+      final res = await http.put(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
+      );
+
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> deleteTour(String id) async {
+    try {
+      final res = await http.delete(Uri.parse('$baseUrl/delete-tour/$id'));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ============================
+  // 🔰 HOTEL
+  // ============================
+
+  static Future<bool> addHotel(Map<String, String> data, File? image) async {
+    final url = Uri.parse('$baseUrl/add-hotel');
+    var req = http.MultipartRequest("POST", url);
+
+    data.forEach((key, value) => req.fields[key] = value);
+
+    if (image != null) {
+      req.files.add(await http.MultipartFile.fromPath("hotelImage", image.path));
+    }
+
+    try {
+      final response = await req.send();
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ============================
+  // 🔰 FLIGHT
+  // ============================
+
+  static Future<bool> addFlight(Map<String, dynamic> data) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/add-flight'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ============================
+  // 🔰 TOUR DETAILS
+  // ============================
+
+  static Future<Map<String, dynamic>?> getTourDetails(String tourID) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/tour-details/$tourID'),
+      );
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  // ============================
+  // 🔰 ITINERARY CRUD
+  // ============================
+
+  static Future<List<dynamic>> getItineraries(String tourID) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/itineraries/$tourID'),
+      );
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+    } catch (_) {}
+
+    return [];
+  }
+
+  static Future<bool> addItinerary(Map<String, dynamic> data) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/add-itinerary'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> updateItinerary(String id, Map<String, dynamic> data) async {
+    try {
+      final res = await http.put(
+        Uri.parse('$baseUrl/edit-itinerary/$id'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> deleteItinerary(String id) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$baseUrl/delete-itinerary/$id'),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 }

@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'tour_form_screen.dart';
+import 'tour_list_screen.dart';
+import 'hotel_flight_manager_screen.dart';
 
 class ProviderDashboardScreen extends StatefulWidget {
-  const ProviderDashboardScreen({super.key, required Map<String, dynamic> user});
+  final Map<String, dynamic> user;
+
+  const ProviderDashboardScreen({
+    super.key,
+    required this.user,
+  });
 
   @override
   State<ProviderDashboardScreen> createState() =>
@@ -28,7 +36,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         backgroundColor: Colors.indigo,
       ),
 
-      // Drawer menu như web nhưng chuẩn mobile
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -42,7 +49,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             ),
 
             _buildMenuItem(Icons.add, "Thêm Tour", 0),
-            _buildMenuItem(Icons.edit, "Quản Lý Tour", 1),
+            _buildMenuItem(Icons.list, "Quản Lý Tour", 1),
             _buildMenuItem(Icons.receipt_long, "Xem Đơn Đặt", 2),
             _buildMenuItem(Icons.check_circle, "Xác Nhận Tour", 3),
             _buildMenuItem(Icons.hotel, "Quản Lý KS/Vé MB", 4),
@@ -53,7 +60,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
               leading: const Icon(Icons.logout),
               title: const Text("Đăng Xuất"),
               onTap: () {
-                Navigator.pop(context);
                 Navigator.pushReplacementNamed(context, "/login");
               },
             ),
@@ -65,74 +71,41 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     );
   }
 
-  // Drawer menu item component
+  // ================================
+  // Drawer menu item
+  // ================================
   Widget _buildMenuItem(IconData icon, String title, int index) {
     return ListTile(
-      leading: Icon(icon, color: Colors.indigo),
+      leading: Icon(icon),
       title: Text(title),
       selected: selectedIndex == index,
       onTap: () {
         setState(() => selectedIndex = index);
-        Navigator.pop(context); // đóng Drawer
+        Navigator.pop(context);
       },
     );
   }
 
-  // Nội dung chính của từng menu
+  // ================================
+  // MAIN CONTENT AREA
+  // ================================
   Widget _buildContent() {
     switch (selectedIndex) {
       case 0:
-        return _addTourUI();
+        return const TourFormScreen(isEdit: false);
+
       case 1:
-        return _manageTourUI();
-      case 2:
-        return _viewBookingsUI();
-      case 3:
-        return _confirmTourUI();
+        return const TourListScreen();
+
       case 4:
-        return _manageHotelFlightUI();
+        return const HotelFlightManagerScreen();
+
       case 5:
-        return _manageScheduleUI();
+      // 🔥 ĐÚNG NHẤT: Chọn tour trước khi xem lịch trình
+        return const TourListScreen();
+
       default:
-        return const Center(child: Text("Lỗi không xác định"));
+        return const Center(child: Text("Chức năng đang phát triển"));
     }
-  }
-
-  // ---------------------- UI for each module ----------------------
-
-  Widget _addTourUI() {
-    return const Center(
-      child: Text("Giao diện Thêm Tour"),
-    );
-  }
-
-  Widget _manageTourUI() {
-    return const Center(
-      child: Text("Quản lý Tour"),
-    );
-  }
-
-  Widget _viewBookingsUI() {
-    return const Center(
-      child: Text("Xem Đơn Đặt"),
-    );
-  }
-
-  Widget _confirmTourUI() {
-    return const Center(
-      child: Text("Xác Nhận Tour"),
-    );
-  }
-
-  Widget _manageHotelFlightUI() {
-    return const Center(
-      child: Text("Quản lý Khách Sạn & Vé Máy Bay"),
-    );
-  }
-
-  Widget _manageScheduleUI() {
-    return const Center(
-      child: Text("Quản lý Lịch Trình Tour"),
-    );
   }
 }

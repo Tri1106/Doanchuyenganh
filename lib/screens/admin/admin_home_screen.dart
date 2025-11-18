@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+
+// IMPORT CÁC MÀN HÌNH ADMIN
+import 'admin_users_screen.dart';
+import 'admin_tour_screen.dart';
+import 'admin_statistics_screen.dart';
+import 'admin_booking_screen.dart';
+import 'admin_dashboard_screen.dart';
+
 import '../login_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
-  const AdminHomeScreen({super.key, required Map<String, dynamic> user});
+  final Map<String, dynamic> user;
 
-  // Hàm build cho từng mục quản lý
+  const AdminHomeScreen({super.key, required this.user});
+
+  // --- COMPONENT CỦA TỪNG MỤC ---
   Widget buildSection({
     required IconData icon,
     required String title,
@@ -25,7 +35,7 @@ class AdminHomeScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.15),
+                  color: Colors.teal.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: Colors.teal, size: 28),
@@ -35,13 +45,16 @@ class AdminHomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 5),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 14, color: Colors.black54),
+                      style:
+                      const TextStyle(fontSize: 14, color: Colors.black54),
                     )
                   ],
                 ),
@@ -68,9 +81,8 @@ class AdminHomeScreen extends StatelessWidget {
               child: const Text("Hủy")),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // đóng dialog
+              Navigator.pop(context);
 
-              // chuyển về login, xóa stack
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -93,13 +105,10 @@ class AdminHomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.teal.shade600,
         title: const Text("Admin Dashboard"),
-
-        // Nút logout
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () => _logout(context),
-            tooltip: "Đăng xuất",
           ),
         ],
       ),
@@ -112,41 +121,72 @@ class AdminHomeScreen extends StatelessWidget {
               "Trang điều khiển",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 18),
 
+            // 1. Quản lý tài khoản
             buildSection(
-              icon: Icons.account_box,
+              icon: Icons.people,
               title: "Quản lý tài khoản",
-              subtitle: "Danh sách user & provider, phân quyền, khóa/mở TK",
-              onTap: () {},
+              subtitle: "Danh sách user & provider",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AdminUsersScreen()),
+                );
+              },
             ),
 
+            // 2. Quản lý tour
             buildSection(
               icon: Icons.map,
               title: "Quản lý tour",
-              subtitle: "Duyệt tour, chỉnh sửa, cập nhật thông tin",
-              onTap: () {},
+              subtitle: "Duyệt & chỉnh sửa thông tin tour",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AdminTourScreen()),
+                );
+              },
             ),
 
+            // 3. Doanh thu / Thống kê
             buildSection(
               icon: Icons.bar_chart,
               title: "Quản lý doanh thu",
-              subtitle: "Xem doanh thu theo tháng/năm, xuất báo cáo",
-              onTap: () {},
+              subtitle: "Thống kê theo tháng",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AdminStatisticsScreen()),
+                );
+              },
             ),
 
+            // 4. Tạo Provider
             buildSection(
               icon: Icons.person_add_alt_1,
               title: "Tạo tài khoản Provider",
-              subtitle: "Thêm provider mới vào hệ thống",
-              onTap: () {},
+              subtitle: "Thêm provider mới",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AdminDashboardScreen()),
+                );
+              },
             ),
 
+            // 5. Quản lý đơn đặt tour
             buildSection(
               icon: Icons.receipt_long,
               title: "Quản lý đơn đặt tour",
-              subtitle: "Xem, duyệt và xử lý đơn đặt",
-              onTap: () {},
+              subtitle: "Xem và duyệt booking",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AdminBookingScreen()),
+                );
+              },
             ),
           ],
         ),
