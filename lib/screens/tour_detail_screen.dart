@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/api_service.dart';
-import 'booking_detail_screen.dart';
 import 'booking_screen.dart';
-
 
 class TourDetailScreen extends StatefulWidget {
   final String tourId;
@@ -27,13 +24,11 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
 
   Future<void> fetchTourDetail() async {
     try {
-      final response = await http.get(
-        Uri.parse('${ApiService.baseUrl}/api/tours/${widget.tourId}'),
-      );
+      final response = await ApiService.getTourDetails(widget.tourId);
 
-      if (response.statusCode == 200) {
+      if (response != null) {
         setState(() {
-          tourDetail = json.decode(response.body);
+          tourDetail = response;
           isLoading = false;
         });
       } else {
@@ -45,10 +40,10 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
     }
   }
 
-  String formatPrice(double? price) {
+  String formatPrice(dynamic price) {
     if (price == null) return "Liên hệ";
     final formatter = NumberFormat('#,###', 'vi_VN');
-    return "${formatter.format(price)} đ";
+    return "${formatter.format(double.tryParse(price.toString()) ?? 0)} đ";
   }
 
   @override
@@ -70,50 +65,50 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
     final flights = tourDetail!['flights'] ?? [];
     final itineraries = tourDetail!['itineraries'] ?? [];
 
-    // 🖼 Xử lý ảnh banner
-    final bannerPath = tour['ImageURL'] ?? tour['HinhAnh'] ?? '';
-    final imageUrl = bannerPath.toString().startsWith('http')
+    // 🖼 Banner image
+    final bannerPath = tour['ImageURL'] ?? '';
+    final imageUrl = bannerPath.startsWith('http')
         ? bannerPath
-        : '${ApiService.baseUrl}/${bannerPath.replaceFirst(RegExp(r"^/+"), "")}';
+        : '${ApiService.base}/${bannerPath.replaceFirst(RegExp(r"^/+"), "")}';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(tour['TenTour']),
+        title: Text(tour['TourName'] ?? 'Chi tiết tour'),
         backgroundColor: Colors.teal,
       ),
+
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => BookingScreen(
-                tourID: tour['TourID'].toString(),
-                tourName: tour['TenTour'] ?? 'Không có tên',
-                tourPrice: double.tryParse(tour['Gia'].toString()) ?? 0.0,
+                tourID: tour['TourID'],
+                tourName: tour['TourName'],
+                tourPrice: double.tryParse("${tour['Price']}") ?? 0,
                 tourImage: imageUrl,
               ),
             ),
           );
         },
-
         label: const Text("Đặt tour ngay"),
         icon: const Icon(Icons.shopping_cart),
         backgroundColor: Colors.teal,
       ),
+
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🖼 Ảnh banner
+            // 🖼 Banner
             Image.network(
               imageUrl,
               width: double.infinity,
               height: 230,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey[300],
                 height: 230,
-                width: double.infinity,
+                color: Colors.grey[300],
                 child: const Icon(Icons.image_not_supported, size: 80),
               ),
             ),
@@ -123,52 +118,58 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Tên tour
                   Text(
-                    tour['TenTour'] ?? 'Không có tên',
+                    tour['TourName'] ?? "Không có tên",
                     style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
+
                   Text(
-                    "Điểm đến: ${tour['Destination'] ?? 'Chưa có'}",
+                    "Điểm đến: ${tour['Destination'] ?? 'Không có'}",
                     style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
+
                   Text(
-                    formatPrice(double.tryParse('${tour['Gia']}')),
+                    formatPrice(tour['Price']),
                     style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.teal,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        fontSize: 20,
+                        color: Colors.teal,
+                        fontWeight: FontWeight.bold),
                   ),
+
                   const Divider(height: 30),
 
-                  // 🌐 Thông tin chung
-                  _infoRow(Icons.directions_bus, "Phương tiện", tour['PhuongTien']),
+                  _infoRow(Icons.directions_bus, "Phương tiện",
+                      tour['PhuongTien']),
                   _infoRow(Icons.discount, "Khuyến mãi", tour['KhuyenMai']),
-                  _infoRow(Icons.people, "Đối tượng phù hợp", tour['DoiTuongThichHop']),
-                  _infoRow(Icons.access_time, "Thời gian lý tưởng", tour['ThoiGianLyTuong']),
+                  _infoRow(Icons.people, "Đối tượng phù hợp",
+                      tour['DoiTuongThichHop']),
+                  _infoRow(Icons.access_time, "Thời gian lý tưởng",
+                      tour['ThoiGianLyTuong']),
                   const SizedBox(height: 20),
 
                   // 🏨 Khách sạn
                   if (hotels.isNotEmpty) ...[
-                    const Text("Khách sạn",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text(
+                      "Khách sạn",
+                      style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 10),
+
                     SizedBox(
-                      height: 220,
+                      height: 230,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: hotels.length,
-                        itemBuilder: (context, index) {
-                          final hotel = hotels[index];
-                          final hotelImage = hotel['ImageURL'] ?? '';
-                          final hotelImageUrl = hotelImage.toString().startsWith('http')
-                              ? hotelImage
-                              : '${ApiService.baseUrl}/${hotelImage.replaceFirst(RegExp(r"^/+"), "")}';
+                        itemBuilder: (context, i) {
+                          final h = hotels[i];
+                          final hUrl = (h['ImageURL'] ?? '').startsWith('http')
+                              ? h['ImageURL']
+                              : '${ApiService.base}/${(h['ImageURL'] ?? "").replaceFirst(RegExp(r"^/+"), "")}';
 
                           return Container(
                             width: 160,
@@ -183,39 +184,34 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
                                 children: [
                                   Expanded(
                                     child: Image.network(
-                                      hotelImageUrl,
+                                      hUrl,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        color: Colors.grey[200],
-                                        child: const Icon(Icons.hotel, size: 60),
-                                      ),
+                                      errorBuilder: (_, __, ___) =>
+                                          Container(color: Colors.grey[200]),
                                     ),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                       children: [
+                                        Text(h['HotelName'] ?? '',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                        Text(h['Location'] ?? '',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey)),
                                         Text(
-                                          hotel['HotelName'] ?? '',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Text(
-                                          hotel['Location'] ?? '',
-                                          style: const TextStyle(
-                                              color: Colors.grey, fontSize: 12),
-                                        ),
-                                        Text(
-                                          formatPrice(double.tryParse('${hotel['PricePerNight']}')),
-                                          style: const TextStyle(color: Colors.teal),
-                                        ),
+                                            formatPrice(
+                                                h['PricePerNight'] ?? 0),
+                                            style: const TextStyle(
+                                                color: Colors.teal)),
                                       ],
                                     ),
-                                  ),
+                                  )
                                 ],
                               ),
                             ),
@@ -226,19 +222,24 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
                     const SizedBox(height: 20),
                   ],
 
-                  // ✈️ Chuyến bay
+                  // ✈️ Flights
                   if (flights.isNotEmpty) ...[
-                    const Text("Vé máy bay",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    ...flights.map((flight) => Card(
+                    const Text(
+                      "Vé máy bay",
+                      style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+
+                    ...flights.map((f) => Card(
                       child: ListTile(
-                        leading: const Icon(Icons.flight_takeoff, color: Colors.teal),
-                        title: Text(flight['Airline'] ?? ''),
+                        leading: const Icon(Icons.flight_takeoff,
+                            color: Colors.teal),
+                        title: Text(f['Airline'] ?? ''),
                         subtitle: Text(
-                            "${flight['DeparturePoint']} → ${flight['DestinationPoint']}"),
+                            "${f['DeparturePoint']} → ${f['DestinationPoint']}"),
                         trailing: Text(
-                          formatPrice(double.tryParse('${flight['Price']}')),
+                          formatPrice(f['Price']),
                           style: const TextStyle(color: Colors.teal),
                         ),
                       ),
@@ -246,21 +247,26 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
                     const SizedBox(height: 20),
                   ],
 
-                  // 📅 Lịch trình
+                  // 📅 Itineraries
                   if (itineraries.isNotEmpty) ...[
-                    const Text("Lịch trình chi tiết",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    ...itineraries.map((item) => Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
+                    const Text(
+                      "Lịch trình",
+                      style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+
+                    ...itineraries.map((it) => Card(
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: Colors.teal,
-                          child: Text('${item['day']}',
-                              style: const TextStyle(color: Colors.white)),
+                          child: Text(
+                            it['DayNumber'].toString(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
                         ),
-                        title: Text(item['Title'] ?? ''),
-                        subtitle: Text(item['Details'] ?? ''),
+                        title: Text(it['Title'] ?? ''),
+                        subtitle: Text(it['Details'] ?? ''),
                       ),
                     )),
                   ],
@@ -281,13 +287,11 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
         children: [
           Icon(icon, size: 20, color: Colors.teal),
           const SizedBox(width: 8),
-          Text("$title: ",
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text("$title: ", style: const TextStyle(fontWeight: FontWeight.bold)),
           Expanded(
             child: Text(
               value.toString(),
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.black87),
             ),
           ),
         ],

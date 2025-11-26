@@ -50,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen>
       return 'https://via.placeholder.com/150';
     }
     if (imageUrl.startsWith('http')) return imageUrl;
-    return '${ApiService.baseUrl}/${imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl}';
+    return '${ApiService.base}/${imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl}';
   }
 
   @override
