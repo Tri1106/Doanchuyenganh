@@ -60,10 +60,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -84,9 +80,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Name
+              // FULLNAME
               TextField(
-                controller: nameController,
+                controller: fullnameController,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.person_outline),
                   labelText: "Họ và tên",
@@ -97,7 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Email
+              // EMAIL
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -110,7 +106,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Password
+              // PHONE
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.phone),
+                  labelText: "Số điện thoại",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // PASSWORD
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -122,9 +131,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 24),
 
-              // Button
+              // BUTTON REGISTER
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -135,8 +145,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {},
-                  child: const Text(
+                  onPressed: _isLoading ? null : _register,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
                     "Đăng ký",
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),

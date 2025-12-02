@@ -38,7 +38,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       debugPrint("📩 Response API: $response");
 
-      if (response != null && response['id'] != null) {
+      final success = response['success'] ?? false;
+      final data = response['data'];
+
+      if (success && data != null && data['id'] != null) {
+        // Đăng nhập thành công
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Đăng nhập thành công!"),
@@ -49,34 +53,34 @@ class _LoginScreenState extends State<LoginScreen> {
         await Future.delayed(const Duration(milliseconds: 500));
         if (!mounted) return;
 
-        final role = response['role'];
+        final role = data['role'];
 
         // 🔥 PHÂN QUYỀN 3 LOẠI: ADMIN / PROVIDER / USER
         if (role == 'admin') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => AdminHomeScreen(user: response),
+              builder: (_) => AdminHomeScreen(user: data),
             ),
           );
         } else if (role == 'provider') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => ProviderDashboardScreen(user: response),
+              builder: (_) => ProviderDashboardScreen(user: data),
             ),
           );
         } else {
-          // MẶC ĐỊNH LÀ USER
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => HomeScreen(user: response),
+              builder: (_) => HomeScreen(user: data),
             ),
           );
         }
       } else {
-        final msg = response?['message'] ?? 'Sai tài khoản hoặc mật khẩu';
+        // Sai tài khoản hoặc mật khẩu
+        final msg = response['message'] ?? 'Sai tài khoản hoặc mật khẩu';
         setState(() => _errorMessage = msg);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -149,6 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
+              // Hiển thị lỗi
               if (_errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -159,6 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
+              // Nút đăng nhập
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -180,6 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
+              // Chuyển sang đăng ký
               TextButton(
                 onPressed: () {
                   Navigator.push(

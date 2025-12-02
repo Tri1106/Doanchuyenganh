@@ -62,6 +62,8 @@ class _BookingScreenState extends State<BookingScreen> {
       final prefs = await SharedPreferences.getInstance();
       final userID = prefs.getString('userID');
 
+      print("📌 USER ID LẤY TỪ PREF: $userID");
+
       if (userID == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -74,20 +76,27 @@ class _BookingScreenState extends State<BookingScreen> {
 
       final url = Uri.parse('http://10.0.2.2:3000/mobile/bookings');
 
+      final payload = {
+        "userID": userID,
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "address": address,
+        "tourID": widget.tourID,
+        "adults": _adults,
+        "children": _children,
+      };
+
+      print("📤 SEND API: $payload");
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "userID": userID,
-          "name": name,
-          "email": email,
-          "phone": phone,
-          "address": address,
-          "tourID": widget.tourID,
-          "adults": _adults,
-          "children": _children,
-        }),
+        body: json.encode(payload),
       );
+
+      print("📥 API RES STATUS: ${response.statusCode}");
+      print("📥 API RES BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -148,9 +157,8 @@ class _BookingScreenState extends State<BookingScreen> {
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20)),
               child: Image.network(
                 widget.tourImage,
                 width: double.infinity,
@@ -163,6 +171,8 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
               ),
             ),
+
+            // 📝 Form đặt tour
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -171,41 +181,29 @@ class _BookingScreenState extends State<BookingScreen> {
                   Text(
                     widget.tourName,
                     style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Giá người lớn: ${formatCurrency(widget.tourPrice)}",
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
+                        fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const Divider(height: 32),
-                  const Text(
-                    "Thông tin khách hàng",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal,
-                    ),
-                  ),
+
+                  const Text("Thông tin khách hàng",
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal)),
+
                   const SizedBox(height: 8),
                   _buildTextField("Họ và tên", _nameController, Icons.person),
                   _buildTextField("Email", _emailController, Icons.email),
                   _buildTextField("Số điện thoại", _phoneController, Icons.phone),
                   _buildTextField("Địa chỉ", _addressController, Icons.home),
                   const SizedBox(height: 20),
-                  const Text(
-                    "Số lượng hành khách",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal,
-                    ),
-                  ),
+
+                  const Text("Số lượng hành khách",
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal)),
+
                   const SizedBox(height: 8),
                   _buildCounterRow("Người lớn", _adults, onIncrease: () {
                     setState(() => _adults++);
@@ -217,7 +215,10 @@ class _BookingScreenState extends State<BookingScreen> {
                   }, onDecrease: () {
                     if (_children > 0) setState(() => _children--);
                   }),
+
                   const SizedBox(height: 20),
+
+                  // 🧮 Tổng tiền
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -227,25 +228,21 @@ class _BookingScreenState extends State<BookingScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          "Tạm tính:",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          formatCurrency(totalAmount),
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.redAccent,
-                          ),
-                        ),
+                        const Text("Tạm tính:",
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(formatCurrency(totalAmount),
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.redAccent)),
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 30),
+
+                  // 🛒 Nút đặt tour
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -254,8 +251,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         backgroundColor: Colors.teal,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       label: const Text(
                         "Đặt tour ngay",
@@ -304,12 +300,15 @@ class _BookingScreenState extends State<BookingScreen> {
             children: [
               IconButton(
                 onPressed: onDecrease,
-                icon: const Icon(Icons.remove_circle_outline, color: Colors.teal),
+                icon: const Icon(Icons.remove_circle_outline,
+                    color: Colors.teal),
               ),
-              Text(value.toString(), style: const TextStyle(fontSize: 16)),
+              Text(value.toString(),
+                  style: const TextStyle(fontSize: 16)),
               IconButton(
                 onPressed: onIncrease,
-                icon: const Icon(Icons.add_circle_outline, color: Colors.teal),
+                icon:
+                const Icon(Icons.add_circle_outline, color: Colors.teal),
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/tour_model.dart';
 
 class Session {
@@ -15,7 +16,7 @@ class ApiService {
   // 🔰 AUTH
   // ============================
 
-  static Future<Map<String, dynamic>?> login(String username, String password) async {
+  static Future<Map<String, dynamic>> login(String username, String password) async {
     final url = Uri.parse('$base/account/login');
 
     try {
@@ -26,18 +27,34 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("📡 STATUS: ${response.statusCode}");
+        print("📨 BODY: $data");
+
+
+        // Lưu cookie nếu có
         if (response.headers['set-cookie'] != null) {
           Session.cookie = response.headers['set-cookie']!.split(';')[0];
           print("🔥 COOKIE LƯU: ${Session.cookie}");
         }
 
-        return jsonDecode(response.body);
+        // Lưu thông tin user vào SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userID', data['id'] ?? '');
+        await prefs.setString('fullname', data['fullname'] ?? '');
+        await prefs.setString('role', data['role'] ?? '');
+
+        print("🔥 LƯU USER ID: ${data['id']}");
+
+        return {'success': true, 'data': data};
+      } else {
+        return {'success': false, 'message': 'Sai tài khoản hoặc mật khẩu'};
       }
-      return {'message': 'Sai tài khoản hoặc mật khẩu'};
     } catch (e) {
-      return {'message': 'Không thể kết nối server: $e'};
+      return {'success': false, 'message': 'Không thể kết nối server: $e'};
     }
   }
+
 
   static Future<Map<String, dynamic>> register(
       String fullname, String email, String phone, String password) async {
@@ -52,7 +69,8 @@ class ApiService {
           'password': password,
         }),
       );
-
+      print("📡 STATUS: ${res.statusCode}");
+      print("📨 BODY: ${res.body}");
       if (res.statusCode == 200 || res.statusCode == 201) {
         return {'success': true, 'message': "Đăng ký thành công!"};
       } else {
