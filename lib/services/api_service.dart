@@ -16,7 +16,8 @@ class ApiService {
   // 🔰 AUTH
   // ============================
 
-  static Future<Map<String, dynamic>> login(String username, String password) async {
+  static Future<Map<String, dynamic>> login(String username,
+      String password) async {
     final url = Uri.parse('$base/account/login');
 
     try {
@@ -56,8 +57,8 @@ class ApiService {
   }
 
 
-  static Future<Map<String, dynamic>> register(
-      String fullname, String email, String phone, String password) async {
+  static Future<Map<String, dynamic>> register(String fullname, String email,
+      String phone, String password) async {
     try {
       final res = await http.post(
         Uri.parse('$base/account/register'),
@@ -152,7 +153,8 @@ class ApiService {
   }
 
   // ADD TOUR — multipart
-  static Future<bool> addTour(Map<String, dynamic> data, File? imageFile) async {
+  static Future<bool> addTour(Map<String, dynamic> data,
+      File? imageFile) async {
     final url = Uri.parse('$base/provider/add-tour');
     var req = http.MultipartRequest("POST", url);
 
@@ -189,25 +191,51 @@ class ApiService {
     }
   }
 
-  // UPDATE TOUR (không ảnh)
-  static Future<bool> updateTour(String tourID, Map<String, dynamic> data) async {
-    final url = Uri.parse('$base/provider/edit-tour/$tourID');
-
+  // UPDATE TOUR
+  static Future<bool> updateTour(String tourID,
+      Map<String, dynamic> data) async {
     try {
-      final res = await http.put(
+      final url = Uri.parse("$base/provider/edit-tour/$tourID");
+      final response = await http.put(
         url,
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": Session.cookie,
-        },
+        headers: {"Content-Type": "application/json"},
         body: jsonEncode(data),
       );
-
-      return res.statusCode == 200;
-    } catch (_) {
+      return response.statusCode == 200;
+    } catch (e) {
+      print("🔥 Lỗi updateTour: $e");
       return false;
     }
   }
+
+  static Future<String?> uploadTourImage(String tourID, File image) async {
+    try {
+      final url = Uri.parse("$base/provider/upload-tour-image/$tourID");
+      final request = http.MultipartRequest('POST', url);
+
+      // Thêm file ảnh
+      request.files.add(await http.MultipartFile.fromPath('image', image.path));
+
+      // Nếu backend cần header Authorization hoặc cookie
+      // request.headers['Authorization'] = "Bearer your_token";
+
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        final resBody = await response.stream.bytesToString();
+        final jsonData = jsonDecode(resBody);
+        // Giả sử backend trả JSON { "imageUrl": "uploads/xxxx.jpg" }
+        return jsonData["imageUrl"];
+      } else {
+        print("🔥 Upload ảnh thất bại, status: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("🔥 Lỗi uploadTourImage: $e");
+      return null;
+    }
+  }
+
 
   // DELETE TOUR
   static Future<bool> deleteTour(String id) async {
@@ -238,7 +266,8 @@ class ApiService {
     data.forEach((key, value) => req.fields[key] = value);
 
     if (image != null) {
-      req.files.add(await http.MultipartFile.fromPath("hotelImage", image.path));
+      req.files.add(
+          await http.MultipartFile.fromPath("hotelImage", image.path));
     }
 
     try {
@@ -316,7 +345,8 @@ class ApiService {
     }
   }
 
-  static Future<bool> updateItinerary(String id, Map<String, dynamic> data) async {
+  static Future<bool> updateItinerary(String id,
+      Map<String, dynamic> data) async {
     try {
       final res = await http.put(
         Uri.parse('$base/provider/edit-itinerary/$id'),
@@ -336,6 +366,58 @@ class ApiService {
       );
       return res.statusCode == 200;
     } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getUserBookings() async {
+    final url = Uri.parse("$base/user/bookings");
+
+    final headers = <String, String>{};
+    if (Session.cookie.isNotEmpty) {
+      headers['Cookie'] = Session.cookie;
+    }
+
+    try {
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final body = response.body.isNotEmpty ? response.body : "[]";
+        final list = List<Map<String, dynamic>>.from(jsonDecode(body));
+        return list;
+      } else {
+        print("⚠️ Lỗi API getUserBookings: ${response.statusCode} ${response
+            .body}");
+        return [];
+      }
+    } catch (e) {
+      print("🔥 Lỗi khi gọi getUserBookings: $e");
+      return [];
+    }
+  }
+
+// Hủy đơn booking
+  static Future<bool> cancelBooking(String bookingID) async {
+    final url = Uri.parse("$base/user/bookings/$bookingID/cancel");
+
+    final headers = <String, String>{};
+    if (Session.cookie.isNotEmpty) {
+      headers['Cookie'] = Session.cookie;
+    }
+
+    try {
+      final response = await http.post(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+        return data['success'] == true;
+      } else {
+        print("⚠️ Lỗi API cancelBooking: ${response.statusCode} ${response
+            .body}");
+        return false;
+      }
+    } catch (e) {
+      print("🔥 Lỗi khi gọi cancelBooking: $e");
       return false;
     }
   }

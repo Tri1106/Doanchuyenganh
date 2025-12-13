@@ -4,6 +4,7 @@ import 'package:shimmer/shimmer.dart';
 import '../services/api_service.dart';
 import '../models/tour_model.dart';
 import 'tour_detail_screen.dart';
+import 'booking_history_screen.dart'; // import màn hình lịch sử
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -27,8 +28,8 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _popularTours = ApiService.getPopularTours();
     _allTours = ApiService.getAllTours();
-    _fadeController =
-    AnimationController(vsync: this, duration: const Duration(milliseconds: 800))
+    _fadeController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800))
       ..forward();
   }
 
@@ -60,15 +61,33 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Trang chủ", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Trang chủ",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.teal,
         elevation: 4,
         shadowColor: Colors.tealAccent.withOpacity(0.4),
         actions: [
+          // Nút xem lịch sử đặt tour
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: "Lịch sử đặt tour",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const BookingHistoryScreen(),
+                ),
+              );
+            },
+          ),
+          // Nút logout
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: "Đăng xuất",
-            onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+            onPressed: () =>
+                Navigator.pushReplacementNamed(context, '/login'),
           ),
         ],
       ),
@@ -87,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 👋 Chào người dùng
+                // Chào người dùng
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
@@ -99,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
 
-                // 🔍 Thanh tìm kiếm
+                // Thanh tìm kiếm
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: TextField(
@@ -118,13 +137,12 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // 🌟 Tour nổi bật
+                // Tour nổi bật
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text(
                     "Tour nổi bật",
-                    style:
-                    TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                   ),
                 ),
                 SizedBox(
@@ -162,10 +180,13 @@ class _HomeScreenState extends State<HomeScreen>
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(16),
                                 onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(
-                                    builder: (context) =>
-                                        TourDetailScreen(tourId: tour.tourID),
-                                  ));
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          TourDetailScreen(tourId: tour.tourID),
+                                    ),
+                                  );
                                 },
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,8 +217,8 @@ class _HomeScreenState extends State<HomeScreen>
                                       ),
                                     ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8),
+                                      padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
                                       child: Text(
                                         formatPrice(tour.price),
                                         style: const TextStyle(
@@ -212,20 +233,18 @@ class _HomeScreenState extends State<HomeScreen>
                           },
                         );
                       } else {
-                        return const Center(
-                            child: Text("Không có tour nổi bật"));
+                        return const Center(child: Text("Không có tour nổi bật"));
                       }
                     },
                   ),
                 ),
 
-                // 📋 Tất cả tour
+                // Tất cả tour
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text(
                     "Tất cả tour",
-                    style:
-                    TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                   ),
                 ),
                 FutureBuilder<List<Tour>>(
@@ -243,8 +262,7 @@ class _HomeScreenState extends State<HomeScreen>
                         itemCount: tours.length,
                         itemBuilder: (context, index) {
                           final tour = tours[index];
-                          final destination =
-                          (tour.destination?.isNotEmpty ?? false)
+                          final destination = (tour.destination?.isNotEmpty ?? false)
                               ? tour.destination!
                               : 'Chưa có địa điểm';
                           return AnimatedOpacity(
@@ -282,10 +300,13 @@ class _HomeScreenState extends State<HomeScreen>
                                       fontWeight: FontWeight.w500),
                                 ),
                                 onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(
-                                    builder: (context) =>
-                                        TourDetailScreen(tourId: tour.tourID),
-                                  ));
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          TourDetailScreen(tourId: tour.tourID),
+                                    ),
+                                  );
                                 },
                               ),
                             ),

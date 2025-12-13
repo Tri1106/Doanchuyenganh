@@ -2,8 +2,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'tour_list_screen.dart';
 import '../../services/api_service.dart';
+import 'tour_list_screen.dart';
 
 class TourFormScreen extends StatefulWidget {
   final bool isEdit;
@@ -19,32 +19,31 @@ class _TourFormScreenState extends State<TourFormScreen> {
   final picker = ImagePicker();
   File? image;
 
-  final name = TextEditingController();
-  final des = TextEditingController();
-  final price = TextEditingController();
-  final seats = TextEditingController();
-  final dtq = TextEditingController();
-  final amthuc = TextEditingController();
-  final dtth = TextEditingController();
-  final tgl = TextEditingController();
-  final pt = TextEditingController();
-  final km = TextEditingController();
+  final nameController = TextEditingController();
+  final desController = TextEditingController();
+  final priceController = TextEditingController();
+  final seatsController = TextEditingController();
+  final dtqController = TextEditingController();
+  final amthucController = TextEditingController();
+  final dtthController = TextEditingController();
+  final tglController = TextEditingController();
+  final ptController = TextEditingController();
+  final kmController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-
     if (widget.isEdit && widget.tour != null) {
-      name.text = widget.tour!["TourName"] ?? '';
-      des.text = widget.tour!["Destination"] ?? '';
-      price.text = widget.tour!["Price"].toString();
-      seats.text = widget.tour!["SoCho"].toString();
-      dtq.text = widget.tour!["DiemThamQuan"] ?? '';
-      amthuc.text = widget.tour!["AmThuc"] ?? '';
-      dtth.text = widget.tour!["DoiTuongThichHop"] ?? '';
-      tgl.text = widget.tour!["ThoiGianLyTuong"] ?? '';
-      pt.text = widget.tour!["PhuongTien"] ?? '';
-      km.text = widget.tour!["KhuyenMai"] ?? '';
+      nameController.text = widget.tour!["TourName"] ?? '';
+      desController.text = widget.tour!["Destination"] ?? '';
+      priceController.text = widget.tour!["Price"]?.toString() ?? '';
+      seatsController.text = widget.tour!["SoCho"]?.toString() ?? '';
+      dtqController.text = widget.tour!["DiemThamQuan"] ?? '';
+      amthucController.text = widget.tour!["AmThuc"] ?? '';
+      dtthController.text = widget.tour!["DoiTuongThichHop"] ?? '';
+      tglController.text = widget.tour!["ThoiGianLyTuong"] ?? '';
+      ptController.text = widget.tour!["PhuongTien"] ?? '';
+      kmController.text = widget.tour!["KhuyenMai"] ?? '';
     }
   }
 
@@ -65,22 +64,31 @@ class _TourFormScreenState extends State<TourFormScreen> {
       }
 
       final data = {
-        "tourName": name.text.trim(),
-        "destination": des.text.trim(),
-        "price": int.tryParse(price.text) ?? 0,
-        "seats": int.tryParse(seats.text) ?? 0,
-        "diemThamQuan": dtq.text.trim(),
-        "amThuc": amthuc.text.trim(),
-        "doiTuongThichHop": dtth.text.trim(),
-        "thoiGianLyTuong": tgl.text.trim(),
-        "phuongTien": pt.text.trim(),
-        "khuyenMai": km.text.trim(),
+        "tourName": nameController.text.trim(),
+        "destination": desController.text.trim(),
+        "price": int.tryParse(priceController.text) ?? 0,
+        "seats": int.tryParse(seatsController.text) ?? 0,
+        "diemThamQuan": dtqController.text.trim(),
+        "amThuc": amthucController.text.trim(),
+        "doiTuongThichHop": dtthController.text.trim(),
+        "thoiGianLyTuong": tglController.text.trim(),
+        "phuongTien": ptController.text.trim(),
+        "khuyenMai": kmController.text.trim(),
       };
 
-      bool ok;
+      bool ok = false;
 
       if (widget.isEdit) {
-        final id = widget.tour!["TourID"].toString();  // FIX key
+        final id = widget.tour!["TourID"].toString();
+
+        // Nếu chọn ảnh mới, upload trước và lấy URL
+        if (image != null) {
+          final uploadedUrl = await ApiService.uploadTourImage(id, image!);
+          if (uploadedUrl != null) {
+            data["ImageURL"] = uploadedUrl;
+          }
+        }
+
         ok = await ApiService.updateTour(id, data);
       } else {
         ok = await ApiService.addTour(data, image);
@@ -98,7 +106,6 @@ class _TourFormScreenState extends State<TourFormScreen> {
           MaterialPageRoute(builder: (_) => const TourListScreen()),
         );
       }
-
     } catch (e) {
       print("🔥 LỖI FORM: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,9 +123,7 @@ class _TourFormScreenState extends State<TourFormScreen> {
         keyboardType: type,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
@@ -126,13 +131,17 @@ class _TourFormScreenState extends State<TourFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy ảnh cũ nếu edit và chưa chọn ảnh mới
     final oldImageUrl = widget.isEdit && widget.tour != null
-        ? widget.tour!["ImageURL"]     // FIX key
+        ? widget.tour!["ImageURL"]
         : null;
 
-    final imageUrl = oldImageUrl == null
-        ? null
-        : "${ApiService.base}${oldImageUrl.toString().replaceFirst(RegExp(r'^/+'), '')}";
+    final displayImage = image != null
+        ? FileImage(image!)
+        : (oldImageUrl != null
+        ? NetworkImage(
+        "${ApiService.base}/${oldImageUrl.toString().replaceFirst(RegExp(r'^/+'), '')}")
+        : null);
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.isEdit ? "Sửa tour" : "Thêm tour mới")),
@@ -142,32 +151,52 @@ class _TourFormScreenState extends State<TourFormScreen> {
           children: [
             GestureDetector(
               onTap: pickImage,
-              child: image != null
-                  ? Image.file(image!, height: 200, fit: BoxFit.cover)
-                  : imageUrl != null
-                  ? Image.network(imageUrl, height: 200, fit: BoxFit.cover)
-                  : Container(
+              child: Container(
                 height: 200,
-                color: Colors.grey.shade300,
-                child: const Center(child: Text("Chọn ảnh")),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey.shade300,
+                ),
+                child: displayImage != null
+                    ? ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: displayImage is FileImage
+                      ? Image.file(image!, fit: BoxFit.cover)
+                      : Image.network(
+                    "${ApiService.base}/${oldImageUrl.toString().replaceFirst(RegExp(r'^/+'), '')}",
+                    fit: BoxFit.cover,
+                  ),
+                )
+                    : const Center(child: Text("Chọn ảnh")),
               ),
             ),
-
-            buildInput("Tên tour", name),
-            buildInput("Điểm đến", des),
-            buildInput("Giá", price, type: TextInputType.number),
-            buildInput("Số chỗ", seats, type: TextInputType.number),
-            buildInput("Điểm tham quan", dtq),
-            buildInput("Ẩm thực", amthuc),
-            buildInput("Đối tượng phù hợp", dtth),
-            buildInput("Thời gian lý tưởng", tgl),
-            buildInput("Phương tiện", pt),
-            buildInput("Khuyến mãi", km),
-
+            buildInput("Tên tour", nameController),
+            buildInput("Điểm đến", desController),
+            buildInput("Giá", priceController, type: TextInputType.number),
+            buildInput("Số chỗ", seatsController, type: TextInputType.number),
+            buildInput("Điểm tham quan", dtqController),
+            buildInput("Ẩm thực", amthucController),
+            buildInput("Đối tượng phù hợp", dtthController),
+            buildInput("Thời gian lý tưởng", tglController),
+            buildInput("Phương tiện", ptController),
+            buildInput("Khuyến mãi", kmController),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: save,
-              child: const Text("Lưu"),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: save,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  "Lưu",
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
             ),
           ],
         ),
